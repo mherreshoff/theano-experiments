@@ -8,7 +8,7 @@ rng = numpy.random
 N = 400
 feats = 784
 D = (rng.randn(N, feats).astype(theano.config.floatX),
-rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
+     rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
 training_steps = 10000
 
 # Declare Theano symbolic variables
@@ -32,7 +32,7 @@ gw,gb = T.grad(cost, [w,b])
 train = theano.function(
             inputs=[x,y],
             outputs=[prediction, xent],
-            updates={w:w-0.01*gw, b:b-0.01*gb},
+            updates=[(w, w-1.01*gw), (b, b-0.01*gb)],
             name = "train")
 predict = theano.function(inputs=[x], outputs=prediction,
             name = "predict")

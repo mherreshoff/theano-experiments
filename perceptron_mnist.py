@@ -46,8 +46,6 @@ train = theano.function([x, y], [pred],
 
 def error_rate(x_set, y_set):
   p = predict(x_set)
-#  print "p=",p
-#  print "y_set=",y_set
   error = (predict(x_set) != y_set).sum()
   return error/float(x_set.shape[0])
 
@@ -64,7 +62,8 @@ print "Training..."
 for i in range(training_steps):
   k = random.randint(0, train_x.shape[0]-1-1000)
   pred = train(train_x[k:k+1000], train_y[k:k+1000])
-  print "Ran for ", i, "steps."
-  print "Train Error rate=", error_rate(train_x, train_y)
-  print "Test Error rate=", error_rate(test_x, test_y)
+  if i % 20 == 0:
+    print "Ran for", i, "mini-batches."
+    print "Train Error rate=", error_rate(train_x, train_y)
+    print "Test Error rate=", error_rate(test_x, test_y)
 

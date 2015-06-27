@@ -59,4 +59,4 @@ print "prediction on D"
 predictions = predict(D[0])
 print predictions
 
-print "Error rate", (predictions-D[1]).sum()/D[1].size()
+print "Error count:", abs(predictions-D[1]).sum()

@@ -56,4 +56,7 @@ print "target values for D"
 print D[1]
 
 print "prediction on D"
-print predict(D[0])
+predictions = predict(D[0])
+print predictions
+
+print "Error rate", (predictions-D[1]).sum()/D[1].size()

@@ -10,8 +10,9 @@ eval_samples = 2000
 # Set up the network:
 print "Setting up network..."
 
-def ones_prefix(data):
-  return T.concatenate([T.ones((data.shape[0], 1)), data], axis=1)
+# Add a left-most column to the matrix containing all ones.
+def ones_prefix(matrix):
+  return T.concatenate([T.ones((matrix.shape[0], 1)), matrix], axis=1)
 
 def shared_zeros(dims):
   return theano.shared(numpy.zeros(dims).astype('float32'))
@@ -62,8 +63,8 @@ print "Training..."
 for i in range(training_steps):
   k = random.randint(0, train_x.shape[0]-1-1000)
   pred = train(train_x[k:k+1000], train_y[k:k+1000])
-  if i % 20 == 0:
+  if i % 200 == 0:
     print "Ran for", i, "mini-batches."
-    print "Train Error rate=", error_rate(train_x, train_y)
-    print "Test Error rate=", error_rate(test_x, test_y)
+    print "Train Error rate =", error_rate(train_x, train_y)
+    print "Test Error rate =", error_rate(test_x, test_y)
 

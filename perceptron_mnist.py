@@ -1,3 +1,4 @@
+import h5py
 import idx2numpy
 import numpy
 import random
@@ -14,15 +15,21 @@ print "Setting up network..."
 def ones_prefix(matrix):
   return T.concatenate([T.ones((matrix.shape[0], 1)), matrix], axis=1)
 
-def shared_zeros(dims):
-  return theano.shared(numpy.zeros(dims).astype('float32'))
-
-def shared_rand(a, dims):
-  return theano.shared(numpy.random.uniform(-a, a, dims).astype('float32'))
+def shared_rand(name, a, dims):
+  return theano.shared(
+    numpy.random.uniform(-a, a, dims).astype('float32'),
+    name=name)
 
 def gradient_updates(error, values, learning_rate):
   gs = T.grad(error, values)
   return [(v, v - learning_rate * g_v) for (v, g_v) in zip(values, gs)]
+
+def write_shared_vars(fname, shared_vars):
+  f = h5py.File(fname, "w")
+  for s in shared_vars:
+    v = s.get_value()
+    d = f.create_dataset(s.name, v.shape, dtype=v.dtype)
+    d[...] = v
 
 theano.config.floatX = 'float32'
 INPUT_DIM = 28*28
@@ -32,9 +39,10 @@ x = T.imatrix('x')
 y = T.ivector('y')
 x_n = ones_prefix(T.cast(x, 'float32') / 255.0)
 
-W1 = shared_rand(0.1, (1+INPUT_DIM, HIDDEN_DIM))
-W2 = shared_rand(0.1, (1+HIDDEN_DIM, OUTPUT_DIM))
+W1 = shared_rand("W1", 0.1, (1+INPUT_DIM, HIDDEN_DIM))
+W2 = shared_rand("W2", 0.1, (1+HIDDEN_DIM, OUTPUT_DIM))
 # W = shared_zeros((1+INPUT_DIM, OUTPUT_DIM))
+
 
 hidden = ones_prefix(T.nnet.sigmoid(x_n.dot(W1)))
 p_y_given_x = T.nnet.softmax(hidden.dot(W2))
@@ -64,6 +72,7 @@ for i in range(training_steps):
   k = random.randint(0, train_x.shape[0]-1-1000)
   pred = train(train_x[k:k+1000], train_y[k:k+1000])
   if i % 200 == 0:
+    write_shared_vars("output/iter_%05d.hdf5" % i, [W1, W2])
     print "Ran for", i, "mini-batches."
     print "Train Error rate =", error_rate(train_x, train_y)
     print "Test Error rate =", error_rate(test_x, test_y)

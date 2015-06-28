@@ -1,3 +1,4 @@
+#!/usr/local/bin/python
 import h5py
 import idx2numpy
 import numpy

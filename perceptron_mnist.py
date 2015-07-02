@@ -1,7 +1,7 @@
 #!/usr/local/bin/python
 import h5py
-import idx2numpy
 import numpy
+import mnist
 import random
 import theano
 import theano.tensor as T
@@ -69,15 +69,10 @@ print "Setting up network..."
 net = MultiLayerPerceptron(DIMENSIONS)
 
 print "Loading MNIST..."
+(train_x, train_y), (test_x, test_y) = mnist.load()
 
-def preprocess_xs(x):
-  return x.reshape((-1, 28*28)).astype(theano.config.floatX) / 255.0
-
-train_x = preprocess_xs(idx2numpy.convert_from_file("mnist/train-images-idx3-ubyte"))
-train_y = idx2numpy.convert_from_file("mnist/train-labels-idx1-ubyte")
-test_x = preprocess_xs(idx2numpy.convert_from_file("mnist/t10k-images-idx3-ubyte"))
-test_y = idx2numpy.convert_from_file("mnist/t10k-labels-idx1-ubyte")
 print "Done Loading MNIST."
+
 print "%d training examples" % train_x.shape[0]
 
 print "Training..."

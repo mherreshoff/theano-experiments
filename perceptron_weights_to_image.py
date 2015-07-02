@@ -11,10 +11,10 @@ h5_file = h5py.File(h5_file_name, "r")
 
 dset = h5_file["W1"]
 ws = np.array(dset).transpose().reshape(-1, 28, 28)
-ws_norm = ws / np.abs(ws).max()
+ws_norm = ws / np.abs(ws).max(axis=0)
 
-# Note: assumes 100 hidden units for now.
-image = ws_norm.reshape(10, 10, 28, 28).swapaxes(1, 2).reshape(-1, 10*28)
+# Note: assumes 10*N hidden units for now.
+image = ws_norm.reshape(-1, 10, 28, 28).swapaxes(1, 2).reshape(-1, 10*28)
 
 red = np.maximum(image, 0)*255.0
 green = np.zeros_like(image)

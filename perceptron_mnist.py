@@ -13,9 +13,6 @@ DIMENSIONS = [28*28, 500, 500, 10]
 BATCH_SIZE = 32
 MAX_GRAPH_TRAIN_ERROR = 0.1
 
-# Set up the network:
-print "Setting up network..."
-
 def shared_rand(name, a, dims):
   return theano.shared(
     numpy.random.uniform(-a, a, dims).astype(theano.config.floatX),
@@ -67,6 +64,10 @@ class MultiLayerPerceptron:
   def write(self, file_name):
     write_shared_vars(file_name, self.Ws + self.bs)
 
+# Set up the network:
+print "Setting up network..."
+net = MultiLayerPerceptron(DIMENSIONS)
+
 print "Loading MNIST..."
 
 def preprocess_xs(x):
@@ -81,7 +82,6 @@ print "%d training examples" % train_x.shape[0]
 
 print "Training..."
 graph_f = open("output/graph.txt", "w")
-net = MultiLayerPerceptron(DIMENSIONS)
 for i in xrange(MAX_TRAINING_STEPS+1):
   k = random.randint(0, train_x.shape[0]-1-BATCH_SIZE)
   pred = net.train(train_x[k:k+BATCH_SIZE], train_y[k:k+BATCH_SIZE])

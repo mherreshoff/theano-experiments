@@ -6,15 +6,18 @@ import random
 import theano
 import theano.tensor as T
 
+theano.config.floatX = 'float32'
 training_steps = 1000000
 eval_samples = 2000
+
+DIMENSIONS = [28*28, 100, 10]
 
 # Set up the network:
 print "Setting up network..."
 
 def shared_rand(name, a, dims):
   return theano.shared(
-    numpy.random.uniform(-a, a, dims).astype('float32'),
+    numpy.random.uniform(-a, a, dims).astype(theano.config.floatX),
     name=name)
 
 def gradient_updates(error, values, learning_rate):
@@ -28,49 +31,60 @@ def write_shared_vars(fname, shared_vars):
     d = f.create_dataset(s.name, v.shape, dtype=v.dtype)
     d[...] = v
 
-theano.config.floatX = 'float32'
-INPUT_DIM = 28*28
-HIDDEN_DIM = 100
-OUTPUT_DIM = 10
-x = T.imatrix('x')
-y = T.ivector('y')
-x_n = (T.cast(x, 'float32') / 255.0)
 
-W1 = shared_rand("W1", 0.1, (INPUT_DIM, HIDDEN_DIM))
-b1 = shared_rand("b1", 0.1, HIDDEN_DIM)
-W2 = shared_rand("W2", 0.1, (HIDDEN_DIM, OUTPUT_DIM))
-b2 = shared_rand("b2", 0.1, OUTPUT_DIM)
+class MultiLayerPerceptron:
+  def __init__(self, dims):
+    self.Ws = list()
+    self.bs = list()
+    self.x = T.fmatrix('x')
+    self.y = T.ivector('y')
+    hidden = self.x
+    for i in range(len(dims)-1):
+      W = shared_rand("W%d" % (i+1), 0.1, (dims[i], dims[i+1]))
+      b = shared_rand("b%d" % (i+1), 0.1, dims[i+1])
+      self.Ws.append(W)
+      self.bs.append(b)
+      q = hidden.dot(W)+b
+      if i+1 == len(dims) - 1:
+        self.p_y_given_x = T.nnet.softmax(q)
+      else:
+        hidden = T.nnet.sigmoid(q)
+    self.pred = T.argmax(self.p_y_given_x, axis=1)
+    self.error = -T.mean(T.log(self.p_y_given_x)[T.arange(self.y.shape[0]), self.y])
+    self.predict_fn = theano.function([self.x], self.pred, name="predict")
+    self.train_fn = theano.function([self.x, self.y], [self.pred],
+      updates=gradient_updates(self.error, self.Ws + self.bs, 0.01))
 
-hidden = T.nnet.sigmoid(x_n.dot(W1)+b1)
-p_y_given_x = T.nnet.softmax(hidden.dot(W2)+b2)
-pred = T.argmax(p_y_given_x, axis=1)
-error = -T.mean(T.log(p_y_given_x)[T.arange(y.shape[0]), y])
+  def train(self, x_set, y_set):
+    return self.train_fn(x_set, y_set)
 
-predict = theano.function([x], pred, name="predict")
-train = theano.function([x, y], [pred],
-  updates=gradient_updates(error, [W1, b1, W2, b2], 0.01))
+  def error_rate(self, x_set, y_set):
+    p = self.predict_fn(x_set)
+    error = (p != y_set).sum()
+    return error/float(x_set.shape[0])
 
-def error_rate(x_set, y_set):
-  p = predict(x_set)
-  error = (predict(x_set) != y_set).sum()
-  return error/float(x_set.shape[0])
+  def write(self, file_name):
+    write_shared_vars(file_name, self.Ws + self.bs)
 
 print "Loading MNIST..."
-train_x = idx2numpy.convert_from_file("mnist/train-images-idx3-ubyte")
-train_x = train_x.reshape((-1, 28*28))
+
+def preprocess_xs(x):
+  return x.reshape((-1, 28*28)).astype(theano.config.floatX) / 255.0
+
+train_x = preprocess_xs(idx2numpy.convert_from_file("mnist/train-images-idx3-ubyte"))
 train_y = idx2numpy.convert_from_file("mnist/train-labels-idx1-ubyte")
-test_x = idx2numpy.convert_from_file("mnist/t10k-images-idx3-ubyte")
-test_x = test_x.reshape((-1, 28*28))
+test_x = preprocess_xs(idx2numpy.convert_from_file("mnist/t10k-images-idx3-ubyte"))
 test_y = idx2numpy.convert_from_file("mnist/t10k-labels-idx1-ubyte")
 print "Done Loading MNIST."
 
 print "Training..."
+net = MultiLayerPerceptron(DIMENSIONS)
 for i in range(training_steps):
   k = random.randint(0, train_x.shape[0]-1-1000)
-  pred = train(train_x[k:k+1000], train_y[k:k+1000])
+  pred = net.train(train_x[k:k+1000], train_y[k:k+1000])
   if i % 200 == 0:
-    write_shared_vars("output/iter_%05d.hdf5" % i, [W1, W2])
+    net.write("output/iter_%08d.hdf5")
     print "Ran for", i, "mini-batches."
-    print "Train Error rate =", error_rate(train_x, train_y)
-    print "Test Error rate =", error_rate(test_x, test_y)
+    print "Train Error rate =", net.error_rate(train_x, train_y)
+    print "Test Error rate =", net.error_rate(test_x, test_y)
 

@@ -9,8 +9,9 @@ import theano.tensor as T
 theano.config.floatX = 'float32'
 
 MAX_TRAINING_STEPS = 1000000
-DIMENSIONS = [28*28, 100, 10]
+DIMENSIONS = [28*28, 500, 500, 10]
 BATCH_SIZE = 32
+MAX_GRAPH_TRAIN_ERROR = 0.1
 
 # Set up the network:
 print "Setting up network..."
@@ -79,13 +80,19 @@ print "Done Loading MNIST."
 print "%d training examples" % train_x.shape[0]
 
 print "Training..."
+graph_f = open("output/graph.txt", "w")
 net = MultiLayerPerceptron(DIMENSIONS)
 for i in xrange(MAX_TRAINING_STEPS+1):
   k = random.randint(0, train_x.shape[0]-1-BATCH_SIZE)
   pred = net.train(train_x[k:k+BATCH_SIZE], train_y[k:k+BATCH_SIZE])
   if i % 4000 == 0:
-    net.write("output/iter_%08d.hdf5" % i)
     print "Ran for", i, "mini-batches."
-    print "Train Error rate =", net.error_rate(train_x, train_y)
-    print "Test Error rate =", net.error_rate(test_x, test_y)
+    net.write("output/iter_%08d.hdf5" % i)
+    train_error = net.error_rate(train_x, train_y)
+    test_error = net.error_rate(test_x, test_y)
+    if train_error < MAX_GRAPH_TRAIN_ERROR:
+      graph_f.write("%d\t%f\t%f\n" % (i, train_error, test_error))
+      graph_f.flush()
+    print "Train Error rate =", train_error
+    print "Test Error rate =", test_error
 

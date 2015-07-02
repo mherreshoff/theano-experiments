@@ -7,10 +7,10 @@ import theano
 import theano.tensor as T
 
 theano.config.floatX = 'float32'
-training_steps = 1000000
-eval_samples = 2000
 
-DIMENSIONS = [28*28, 100, 10]
+MAX_TRAINING_STEPS = 1000000
+DIMENSIONS = [28*28, 20, 10]
+BATCH_SIZE = 32
 
 # Set up the network:
 print "Setting up network..."
@@ -76,13 +76,14 @@ train_y = idx2numpy.convert_from_file("mnist/train-labels-idx1-ubyte")
 test_x = preprocess_xs(idx2numpy.convert_from_file("mnist/t10k-images-idx3-ubyte"))
 test_y = idx2numpy.convert_from_file("mnist/t10k-labels-idx1-ubyte")
 print "Done Loading MNIST."
+print "%d training examples" % train_x.shape[0]
 
 print "Training..."
 net = MultiLayerPerceptron(DIMENSIONS)
-for i in range(training_steps):
-  k = random.randint(0, train_x.shape[0]-1-1000)
-  pred = net.train(train_x[k:k+1000], train_y[k:k+1000])
-  if i % 200 == 0:
+for i in xrange(MAX_TRAINING_STEPS):
+  k = random.randint(0, train_x.shape[0]-1-BATCH_SIZE)
+  pred = net.train(train_x[k:k+BATCH_SIZE], train_y[k:k+BATCH_SIZE])
+  if i % 1000 == 0:
     net.write("output/iter_%08d.hdf5" % i)
     print "Ran for", i, "mini-batches."
     print "Train Error rate =", net.error_rate(train_x, train_y)

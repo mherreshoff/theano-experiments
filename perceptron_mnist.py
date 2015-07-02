@@ -83,7 +83,7 @@ for i in range(training_steps):
   k = random.randint(0, train_x.shape[0]-1-1000)
   pred = net.train(train_x[k:k+1000], train_y[k:k+1000])
   if i % 200 == 0:
-    net.write("output/iter_%08d.hdf5")
+    net.write("output/iter_%08d.hdf5" % i)
     print "Ran for", i, "mini-batches."
     print "Train Error rate =", net.error_rate(train_x, train_y)
     print "Test Error rate =", net.error_rate(test_x, test_y)

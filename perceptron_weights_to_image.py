@@ -10,7 +10,7 @@ prog_name, h5_file_name, img_file_name = sys.argv
 h5_file = h5py.File(h5_file_name, "r")
 
 dset = h5_file["W1"]
-ws = np.array(dset)[1:].transpose().reshape(-1, 28, 28)
+ws = np.array(dset).transpose().reshape(-1, 28, 28)
 ws_norm = ws / np.abs(ws).max()
 
 # Note: assumes 100 hidden units for now.

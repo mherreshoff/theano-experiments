@@ -10,7 +10,7 @@ def read_graph(dir_name):
 
   for line in f:
     t, train, test = [float(x) for x in line.strip().split("\t")]
-    if train < 0.1:
+    if t >= 5:
       ts.append(t)
       trains.append(train)
       tests.append(test)

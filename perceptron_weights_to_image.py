@@ -25,12 +25,17 @@ def make_grid(pics, cols=10, margin=2, bg_color="white"):
   return im
 
 h5_file_name = sys.argv[1]
+h5_grp = sys.argv[2]
+
+image_file = None
+if len(sys.argv) >= 4:
+  image_file = sys.argv[3]
+
 h5_file = h5py.File(h5_file_name, "r")
-ws = np.array(h5_file["W1"]).transpose().reshape(-1, 28, 28)
+ws = np.array(h5_file[h5_grp]).transpose().reshape(-1, 28, 28)
 im = make_grid([weights_to_pic(w) for w in ws])
 
-if len(sys.argv) >= 3:
-  image_file = sys.argv[2]
-  im.save(image_file)
-else:
+if image_file is None:
   im.show()
+else:
+  im.save(image_file)

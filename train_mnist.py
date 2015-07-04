@@ -4,20 +4,25 @@ import numpy
 import os
 import sys
 
-import mlp
+import models
 import mnist
 
-MAX_EPOCHS = 100
+MAX_EPOCHS = 1000
 
 # Parse commandline:
 output_dir = sys.argv[1]
-dimensions = [28*28] + [int(x) for x in sys.argv[2].split("x")] + [10]
 
 os.makedirs(output_dir)
 
 # Set up the network:
 print "Setting up network..."
-net = mlp.MultiLayerPerceptron(dimensions)
+model_str = sys.argv[2]
+
+if model_str == "conv":
+  net = models.ConvolutionalNet()
+else:
+  dimensions = [28*28] + [int(x) for x in model_str.split("x")] + [10]
+  net = models.MultiLayerPerceptron(dimensions)
 
 print "Loading MNIST..."
 (train_x, train_y), (test_x, test_y) = mnist.load()

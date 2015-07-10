@@ -28,6 +28,11 @@ def write_shared_vars(fname, shared_vars):
     d = f.create_dataset(s.name, v.shape, dtype=v.dtype)
     d[...] = v
 
+def read_shared_vars(fname, shared_vars):
+  f = h5py.File(fname, "w")
+  for s in shared_vars:
+    s.set_value(f[s.name])
+
 #MultiLayer Perceptron
 def perceptron_model(dims, activation=T.nnet.sigmoid, name_prefix=""):
   def model_builder(x, add_weight):
@@ -71,3 +76,7 @@ class BatchTrainedModel:
 
   def write(self, fname):
     write_shared_vars(fname, self.weights)
+
+  def read(self, fname):
+    read_shared_vars(fname, self.weights)
+

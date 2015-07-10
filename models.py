@@ -1,56 +1,67 @@
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
-from keras.layers.core import Dense, Flatten, Reshape
-from keras.models import Sequential
-from keras.optimizers import SGD
-from keras.utils import np_utils
+import h5py
+import numpy
+import random
+import theano
+import theano.tensor as T
+
+def shared_rand(dims, name, a=0.1):
+  value = numpy.random.uniform(-a, a, dims).astype(theano.config.floatX)
+  return theano.shared(value, name=name);
+
+# Returnts <output neurons>
+def add_linear_transform(inputs, dim_in, dim_out, name_prefix, add_weight):
+  weights = shared_rand((dim_in, dim_out), name_prefix + ":weight")
+  bias = shared_rand((dim_out,), name_prefix + ":bias")
+  add_weight(weights)
+  add_weight(bias)
+  outputs = inputs.dot(weights) + bias
+  return outputs
+
+def gradient_updates(error, values, learning_rate):
+  gs = T.grad(error, values)
+  return [(v, v - learning_rate * g_v) for (v, g_v) in zip(values, gs)]
+
+def write_shared_vars(fname, shared_vars):
+  f = h5py.File(fname, "w")
+  for s in shared_vars:
+    v = s.get_value()
+    d = f.create_dataset(s.name, v.shape, dtype=v.dtype)
+    d[...] = v
 
 #MultiLayer Perceptron
 class MultiLayerPerceptron:
-  def __init__(self, dims):
-    self.model = Sequential()
+  def __init__(self, dims, name_prefix):
+    self.weights = list()
+    add_weight = lambda w: self.weights.append(w)
+    self.x = T.matrix('x')
+    self.y = T.ivector('y')
+    layer = self.x
     for i in range(len(dims)-1):
-      if i+1 == len(dims) - 1:
-        activation = "softmax"
+      layer_prefix = name_prefix + (":%03d" % (i+1))
+      layer = add_linear_transform(layer, dims[i], dims[i+1], layer_prefix, add_weight)
+      if i == len(dims)-2:
+        layer = T.nnet.softmax(layer)
       else:
-        activation = "sigmoid"
-      self.model.add(Dense(dims[i], dims[i+1], init='uniform', activation=activation))
-    self.model.compile(optimizer='sgd', loss='categorical_crossentropy')
+        layer = T.nnet.sigmoid(layer)
+    self.p_y_given_x = layer
+    self.pred = T.argmax(self.p_y_given_x, axis=1)
+    self.error = -T.mean(T.log(self.p_y_given_x)[T.arange(self.y.shape[0]), self.y])
+    self.predict_fn = theano.function([self.x], self.pred, name="predict")
+    self.train_fn = theano.function([self.x, self.y], self.pred, name="train",
+        updates=gradient_updates(self.error, self.weights, 0.01))
 
-  def train(self, x_set, y_set):
-    self.model.fit(x_set, np_utils.to_categorical(y_set),
-        nb_epoch=1, batch_size=32, verbose=1)
+  def train_epoch(self, x_set, y_set, batch_size=32):
+    order = range(len(x_set))
+    random.shuffle(order)
+    for i in xrange(0, len(order), batch_size):
+      if i+batch_size <= len(order):
+        subset = order[i:i+batch_size]
+        self.train_fn(x_set[subset], y_set[subset])
 
   def error_rate(self, x_set, y_set):
-    p = self.model.predict_classes(x_set)
+    p = self.predict_fn(x_set)
     error = (p != y_set).sum()
     return error/float(x_set.shape[0])
 
-  def write(self, file_name):
-    self.model.save_weights(file_name)
-
-
-#Convolution + MultiLayerPerceptron
-class ConvolutionalNet:
-#TODO: add back arguments.
-  def __init__(self):
-    self.model = Sequential()
-    self.model.add(Convolution2D(10, 1, 3, 3, activation='relu'))
-    self.model.add(MaxPooling2D(poolsize=(4,4)))
-    self.model.add(Flatten())
-    self.model.add(Dense(6*6*10, 10, init='uniform', activation='softmax'))
-    self.sgd = SGD(lr=0.001)
-    self.model.compile(optimizer=self.sgd, loss='categorical_crossentropy')
-
-  def train(self, x_set, y_set):
-    self.model.fit(x_set.reshape((-1, 1, 28, 28)),
-                   np_utils.to_categorical(y_set),
-                   nb_epoch=1, batch_size=32, verbose=1)
-
-  def error_rate(self, x_set, y_set):
-    p = self.model.predict_classes(x_set.reshape((-1, 1, 28, 28)))
-    error = (p != y_set).sum()
-    return error/float(x_set.shape[0])
-
-  def write(self, file_name):
-    self.model.save_weights(file_name)
-
+  def write(self, fname):
+    write_shared_vars(fname, self.weights)

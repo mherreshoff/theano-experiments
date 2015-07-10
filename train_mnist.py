@@ -11,18 +11,15 @@ MAX_EPOCHS = 1000
 
 # Parse commandline:
 output_dir = sys.argv[1]
+model_str = sys.argv[2]
 
 os.makedirs(output_dir)
 
 # Set up the network:
 print "Setting up network..."
-model_str = sys.argv[2]
 
-if model_str == "conv":
-  net = models.ConvolutionalNet()
-else:
-  dimensions = [28*28] + [int(x) for x in model_str.split("x")] + [10]
-  net = models.MultiLayerPerceptron(dimensions)
+dimensions = [28*28] + [int(x) for x in model_str.split("x")] + [10]
+net = models.MultiLayerPerceptron(dimensions, "")
 
 print "Loading MNIST..."
 (train_x, train_y), (test_x, test_y) = mnist.load()
@@ -41,5 +38,5 @@ for i in xrange(MAX_EPOCHS+1):
   graph_f.flush()
   print "Train Error rate =", train_error
   print "Test Error rate =", test_error
-  pred = net.train(train_x, train_y);
+  pred = net.train_epoch(train_x, train_y);
 

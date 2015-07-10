@@ -29,9 +29,9 @@ def write_shared_vars(fname, shared_vars):
     d[...] = v
 
 def read_shared_vars(fname, shared_vars):
-  f = h5py.File(fname, "w")
+  f = h5py.File(fname, "r")
   for s in shared_vars:
-    s.set_value(f[s.name])
+    s.set_value(numpy.array(f[s.name]))
 
 #MultiLayer Perceptron
 def perceptron_model(dims, activation=T.nnet.sigmoid, name_prefix=""):

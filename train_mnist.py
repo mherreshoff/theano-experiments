@@ -1,6 +1,5 @@
 #!/usr/local/bin/python
 import argparse
-import h5py
 import numpy
 import os
 import sys

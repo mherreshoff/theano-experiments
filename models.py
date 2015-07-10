@@ -29,21 +29,27 @@ def write_shared_vars(fname, shared_vars):
     d[...] = v
 
 #MultiLayer Perceptron
-class MultiLayerPerceptron:
-  def __init__(self, dims, name_prefix):
-    self.weights = list()
-    add_weight = lambda w: self.weights.append(w)
-    self.x = T.matrix('x')
-    self.y = T.ivector('y')
-    layer = self.x
+def perceptron_model(dims, activation=T.nnet.sigmoid, name_prefix=""):
+  def model_builder(x, add_weight):
+    layer = x
     for i in range(len(dims)-1):
       layer_prefix = name_prefix + (":%03d" % (i+1))
       layer = add_linear_transform(layer, dims[i], dims[i+1], layer_prefix, add_weight)
       if i == len(dims)-2:
         layer = T.nnet.softmax(layer)
       else:
-        layer = T.nnet.sigmoid(layer)
-    self.p_y_given_x = layer
+        layer = activation(layer)
+    return layer
+  return model_builder
+
+class BatchTrainedModel:
+  def __init__(self, model_builder):
+    self.weights = list()
+    add_weight = lambda w: self.weights.append(w)
+    self.x = T.matrix('x')
+    self.y = T.ivector('y')
+
+    self.p_y_given_x = model_builder(self.x, add_weight)
     self.pred = T.argmax(self.p_y_given_x, axis=1)
     self.error = -T.mean(T.log(self.p_y_given_x)[T.arange(self.y.shape[0]), self.y])
     self.predict_fn = theano.function([self.x], self.pred, name="predict")

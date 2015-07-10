@@ -22,7 +22,7 @@ os.makedirs(args.output_dir)
 print "Setting up network..."
 
 dimensions = [28*28] + [int(x) for x in args.network_structure.split("x")] + [10]
-net = models.MultiLayerPerceptron(dimensions, "")
+net = models.BatchTrainedModel(models.perceptron_model(dimensions))
 
 print "Loading MNIST..."
 (train_x, train_y), (test_x, test_y) = mnist.load()

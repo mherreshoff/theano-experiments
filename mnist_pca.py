@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/python
 
 from sklearn.decomposition import PCA
 import numpy as np
